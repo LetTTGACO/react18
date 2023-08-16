@@ -1,5 +1,10 @@
 import { FiberNode } from './fiber';
-import { HostComponent, HostRoot, HostText } from './workTags';
+import {
+  FunctionComponent,
+  HostComponent,
+  HostRoot,
+  HostText
+} from './workTags';
 import {
   appendInitialChild,
   Container,
@@ -40,6 +45,9 @@ export const completeWork = (wip: FiberNode) => {
         // 文本节点不存在child，所以不需要append
         wip.stateNode = instance;
       }
+      bubbleProperties(wip);
+      return null;
+    case FunctionComponent:
       bubbleProperties(wip);
       return null;
     case HostRoot:
