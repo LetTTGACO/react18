@@ -1,7 +1,7 @@
 {
-  "name": "react",
+  "name": "react-reconciler",
   "version": "1.0.0",
-  "description": "",
+  "description": "React协调器",
   "module": "index.ts",
   "keywords": [],
   "author": "",
