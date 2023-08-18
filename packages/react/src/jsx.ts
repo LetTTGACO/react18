@@ -24,6 +24,14 @@ const ReactElement = function (
   };
 };
 
+export function isValidElement(object: any) {
+  return (
+    typeof object === 'object' &&
+    object !== null &&
+    object.$$typeof === REACT_ELEMENT_TYPE
+  );
+}
+
 export const jsx = (
   type: ElementType,
   config: any,
@@ -40,11 +48,13 @@ export const jsx = (
       if (val !== undefined) {
         key = '' + val;
       }
+      continue;
     }
     if (prop === 'ref') {
       if (val !== undefined) {
         ref = val;
       }
+      continue;
     }
     if ({}.hasOwnProperty.call(config, prop)) {
       props[prop] = val;
