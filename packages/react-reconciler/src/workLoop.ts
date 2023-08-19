@@ -83,7 +83,7 @@ function commitRoot(root: FiberRootNode) {
     // beforeMutation阶段
     // mutation阶段 Placement对应的数组环境的操作
     commitMutationEffects(finishedWork);
-    // fiber树的切换 发生在mutati on阶段和layout阶段之间
+    // fiber树的切换 发生在mutation on阶段和layout阶段之间
     root.current = finishedWork;
     // layout阶段
   } else {
