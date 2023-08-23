@@ -22,7 +22,7 @@ export class FiberNode {
   index: number;
 
   pendingProps: Props;
-  memoizedProps: Props;
+  memoizedProps: Props | null;
   memoizedState: any;
   // 用于切换current fiberNode 和workInProcess fiberNode
   alternate: FiberNode | null;

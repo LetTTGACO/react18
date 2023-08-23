@@ -12,6 +12,7 @@ import {
   createTextInstance
 } from 'hostConfig';
 import { NoFlags, Update } from './fiberFlags';
+import { updateFiberProps } from 'react-dom/src/SyntheticEvent';
 
 function markUpdate(fiber: FiberNode) {
   fiber.flags |= Update;
@@ -30,6 +31,12 @@ export const completeWork = (wip: FiberNode) => {
       // 构建离屏的DOM树 stateNode: 保存DOM节点
       if (current !== null && wip.stateNode) {
         // TODO 走更新逻辑 update
+        // props是否改变
+        // 如果改变需要添加Flags
+        // fiberNode.updateQueue = ['变化的属性'， 变化的值]
+        // n key
+        // n + 1 value
+        updateFiberProps(wip.stateNode, newProps);
       } else {
         // 1.构建DOM
         const instance = createInstance(wip.type, newProps);
@@ -43,7 +50,7 @@ export const completeWork = (wip: FiberNode) => {
     case HostText:
       if (current !== null && wip.stateNode) {
         // 走更新逻辑 update
-        const oldText = current.memoizedProps.content;
+        const oldText = current.memoizedProps?.content;
         // 获取新text
         const newTextProps = newProps.content;
         if (oldText !== newTextProps) {
