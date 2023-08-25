@@ -1,12 +1,12 @@
 import { FiberNode } from './fiber';
 import {
+  Fragment,
   FunctionComponent,
   HostComponent,
   HostRoot,
   HostText
 } from './workTags';
 import { processUpdateQueue, UpdateQueue } from './updateQueue';
-import { ReactElementType } from 'shared/ReactTypes';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
 
@@ -28,6 +28,8 @@ export const beginWork = (wip: FiberNode) => {
     case FunctionComponent:
       // 没有子节点，直接return null
       return updateFunctionComponent(wip);
+    case Fragment:
+      return updateFragment(wip);
     default:
       if (__DEV__) {
         console.warn('beginWork未实现的类型');
@@ -35,6 +37,13 @@ export const beginWork = (wip: FiberNode) => {
       return null;
   }
 };
+
+function updateFragment(wip: FiberNode) {
+  // 创建子fiberNode
+  const nextChildren = wip.pendingProps;
+  reconcileChildren(wip, nextChildren);
+  return wip.child;
+}
 
 /**
  * 函数式组件
@@ -70,7 +79,7 @@ function updateHostComponent(wip: FiberNode) {
   return wip.child;
 }
 
-function reconcileChildren(wip: FiberNode, children?: ReactElementType) {
+function reconcileChildren(wip: FiberNode, children?: any) {
   // 1. 获取父节点的currentNode
   const current = wip.alternate;
   // 比较子节点的属性
