@@ -175,7 +175,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
           lastPlacedIndex = newFiber.index;
         }
       } else {
-        // mount
+        // mount 插入
         newFiber.flags |= Placement;
       }
     }
@@ -250,6 +250,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
     currentFiber: FiberNode | null, // 当前Fiber
     newChild?: any // 子节点的ReactElement
   ) => {
+    console.log('newChild', newChild);
     // 判断当前fiber的类型
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {
@@ -257,18 +258,14 @@ function ChildReconciler(shouldTrackEffects: boolean) {
           return placeSingChild(
             reconcileSingleElement(returnFiber, currentFiber, newChild)
           );
-        default:
-          if (__DEV__) {
-            console.error('未实现的reconcile类型');
-            return null;
-          }
+      }
+      // 多节点 ul => li * 3
+      // 如果newChild是数组
+      if (Array.isArray(newChild)) {
+        return reconcileChildrenArray(returnFiber, currentFiber, newChild);
       }
     }
-    // 多节点 ul => li * 3
-    // 如果newChild是数组
-    if (Array.isArray(newChild)) {
-      return reconcileChildrenArray(returnFiber, currentFiber, newChild);
-    }
+
     if (typeof newChild === 'string' || typeof newChild === 'number') {
       // HostText
       return placeSingChild(

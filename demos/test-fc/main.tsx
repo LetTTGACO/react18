@@ -5,11 +5,12 @@ function App() {
   const [num, setNum] = useState(100);
   // window.setNum = setNum;
   // return num === 3 ? <Child /> : <div><span>{num}</span></div>;
-  return (
-    <div>
-      <span onClickCapture={() => setNum(num + 1)}>{num}</span>
-    </div>
-  );
+
+  const list =
+    num % 2 === 0
+      ? [<li key={1}>1</li>, <li key={2}>2</li>, <li key={3}>3</li>]
+      : [<li key={3}>3</li>, <li key={2}>2</li>, <li key={1}>1</li>];
+  return <ul onClickCapture={() => setNum(num + 1)}>{list}</ul>;
 }
 
 function Child() {

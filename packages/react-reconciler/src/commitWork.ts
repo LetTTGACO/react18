@@ -16,6 +16,8 @@ import {
   appendChildToContainer,
   commitUpdate,
   Container,
+  insertChildToContainer,
+  Instance,
   removeChild
 } from 'hostConfig';
 
@@ -154,13 +156,60 @@ const commitPlacement = (finishedWork: FiberNode) => {
   }
   // 获取父级的宿主环境对应的DOM节点
   const hostParent = getHostParent(finishedWork);
+  // 找到 host sibling节点
+  const sibling = getHostSibling(finishedWork);
   // 找到finishedWork 对应的 DOM
   // 并且将DOM append parent dom
   if (hostParent !== null) {
-    appendPlacementNodeIntoContainer(finishedWork, hostParent);
+    insertOrAppendPlacementNodeIntoContainer(finishedWork, hostParent, sibling);
   }
 };
 
+function getHostSibling(fiber: FiberNode) {
+  let node: FiberNode = fiber;
+
+  findSibling: while (true) {
+    // 向上遍历
+    while (node.sibling === null) {
+      const parent = node.return;
+      if (
+        parent === null ||
+        parent.tag === HostComponent ||
+        parent.tag === HostRoot
+      ) {
+        // 终止条件没找到
+        return null;
+      }
+      node = parent;
+    }
+
+    // 向下遍历
+    node.sibling.return = node.return;
+    node = node.sibling;
+
+    while (node.tag !== HostText && node.tag !== HostComponent) {
+      // 直接的兄弟节点不是一个Host类型
+      // 向下遍历
+      // 不稳定的兄弟节点不能作为兄弟节点
+      if ((node.flags & Placement) !== NoFlags) {
+        continue findSibling;
+      }
+      if (node.child === null) {
+        // 继续寻找兄弟节点
+        continue findSibling;
+      } else {
+        // 向下遍历
+        node.child.return = node;
+        node = node.child;
+      }
+    }
+
+    if ((node.flags & Placement) === NoFlags) {
+      // 找到了Host类型的兄弟节点
+      return node.stateNode;
+    }
+  }
+}
 /**
  * 获取父级的宿主环境对应的DOM节点
  * @param fiber
@@ -189,22 +238,27 @@ function getHostParent(fiber: FiberNode) {
 /**
  * 将Placement对应的node append 到对应的dom中
  */
-function appendPlacementNodeIntoContainer(
+function insertOrAppendPlacementNodeIntoContainer(
   finishedWork: FiberNode,
-  hostParent: Container
+  hostParent: Container,
+  before: Instance
 ) {
   // 向下递归遍历，直到找到HostComponent/HostText
   if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
-    appendChildToContainer(hostParent, finishedWork.stateNode);
+    if (before) {
+      insertChildToContainer(finishedWork.stateNode, hostParent, before);
+    } else {
+      appendChildToContainer(hostParent, finishedWork.stateNode);
+    }
     return;
   }
 
   const child = finishedWork.child;
   if (child !== null) {
-    appendPlacementNodeIntoContainer(child, hostParent);
+    insertOrAppendPlacementNodeIntoContainer(child, hostParent, before);
     let sibling = child.sibling;
     while (sibling !== null) {
-      appendPlacementNodeIntoContainer(sibling, hostParent);
+      insertOrAppendPlacementNodeIntoContainer(sibling, hostParent, before);
       sibling = sibling.sibling;
     }
   }
