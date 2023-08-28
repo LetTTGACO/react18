@@ -4,6 +4,15 @@ import { completeWork } from './completeWork';
 import { HostRoot } from './workTags';
 import { MutationMask, NoFlags } from './fiberFlags';
 import { commitMutationEffects } from './commitWork';
+import {
+  getHighestPriorityLane,
+  Lane,
+  mergeLanes,
+  NoLane,
+  SyncLane
+} from './fiberLanes';
+import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue';
+import { scheduleMicroTask } from 'hostConfig';
 
 let workInProcess: FiberNode | null = null;
 
@@ -16,10 +25,45 @@ function prepareFreshStack(root: FiberRootNode) {
  * 在Fiber中调度Update
  * 连接Container和renderRoot方法
  */
-export function scheduleUpdateOnFiber(fiber: FiberNode) {
-  // TODO 调度功能
+export function scheduleUpdateOnFiber(fiber: FiberNode, lane: Lane) {
   const root = markUpdateFromFiberToRoot(fiber);
-  renderRoot(root);
+  // 记录
+  markRootUpdated(root, lane);
+  // 调度
+  ensureRootIsScheduled(root);
+  // renderRoot(root);
+}
+
+/**
+ * schedule阶段入口
+ * @param root
+ */
+function ensureRootIsScheduled(root: FiberRootNode) {
+  const updateLane = getHighestPriorityLane(root.pendingLanes);
+  if (updateLane === NoLane) {
+    // 不需要更新
+    return;
+  }
+  if (updateLane === SyncLane) {
+    // 同步优先级 微任务调度
+    if (__DEV__) {
+      console.log('在微任务中调度，优先级', updateLane);
+    }
+    //
+    scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane));
+    scheduleMicroTask(flushSyncCallbacks);
+  } else {
+    // 其他优先级 宏任务调度
+  }
+}
+
+/**
+ * 在FiberRootNode中记录本次更新的优先级
+ * @param root
+ * @param lane
+ */
+function markRootUpdated(root: FiberRootNode, lane: Lane) {
+  root.pendingLanes = mergeLanes(root.pendingLanes, lane);
 }
 
 /**
@@ -40,7 +84,21 @@ function markUpdateFromFiberToRoot(fiber: FiberNode) {
   }
   return null;
 }
-export function renderRoot(root: FiberRootNode) {
+
+/**
+ * render阶段的入口
+ * @param root
+ * @param lane
+ */
+export function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
+  const nextLane = getHighestPriorityLane(lane);
+  if (nextLane !== SyncLane) {
+    // 其他比SyncLane低的优先级
+    // NoLane等
+    // 以防万一再重新调度一下
+    ensureRootIsScheduled(root);
+    return;
+  }
   // 初始化
   prepareFreshStack(root);
 

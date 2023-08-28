@@ -62,3 +62,15 @@ export function removeChild(
 ) {
   container.removeChild(childInstance);
 }
+
+/**
+ * 如果当前宿主环境支持queueMicrotask微任务，就用queueMicrotask
+ * 如果不支持queueMicrotask微任务，就看是否存在Promise，用Promise构造微任务
+ * 如果不知道Promise，就返回setTimeout，用宏任务构造
+ */
+export const scheduleMicroTask =
+  typeof queueMicrotask === 'function'
+    ? queueMicrotask
+    : typeof Promise === 'function'
+    ? (callback: (...args: any) => void) => Promise.resolve(null).then(callback)
+    : setTimeout;

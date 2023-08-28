@@ -10,6 +10,7 @@ import {
 import { Action } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 import { Dispatch, Dispatcher } from 'react/src/currentDispatcher';
+import { requestUpdateLanes } from './fiberLanes';
 
 let currentlyRenderingFiber: FiberNode | null = null;
 let workInProgressHook: Hook | null = null;
@@ -147,10 +148,12 @@ function dispatchSetState<State>(
   updateQueue: UpdateQueue<State>,
   action: Action<State>
 ) {
+  // 创建优先级
+  const lane = requestUpdateLanes();
   // 创建一个update
-  const update = createUpdate<State>(action);
+  const update = createUpdate<State>(action, lane);
   enqueueUpdate<State>(updateQueue, update);
-  scheduleUpdateOnFiber(fiber);
+  scheduleUpdateOnFiber(fiber, lane);
 }
 
 function mountWorkInProgressHook() {
