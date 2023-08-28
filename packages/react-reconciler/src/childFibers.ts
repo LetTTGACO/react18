@@ -231,7 +231,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
       switch (element.$$typeof) {
         case REACT_ELEMENT_TYPE:
           if (element.type === REACT_FRAGMENT_TYPE) {
-            updateFragment(
+            return updateFragment(
               returnFiber,
               before,
               element,

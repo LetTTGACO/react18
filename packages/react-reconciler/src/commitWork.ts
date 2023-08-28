@@ -78,26 +78,46 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
   // commitChildDeletion(finishedWork);
 };
 
+function recordHostChildrenToDelete(
+  childrenToDelete: FiberNode[],
+  unmountFiber: FiberNode
+) {
+  // 1. 找到第一个root host节点
+  const lastOne = childrenToDelete[childrenToDelete.length - 1];
+  if (!lastOne) {
+    childrenToDelete.push(unmountFiber);
+  } else {
+    let node = lastOne.sibling;
+    while (node !== null) {
+      if (node === unmountFiber) {
+        // 2. 每找到一个host节点，判断下这个节点是不是 1 找到的那个节点的兄弟节点，如果不是就说明是Fragment
+        childrenToDelete.push(unmountFiber);
+      }
+      node = node.sibling;
+    }
+  }
+  // 这样childToDelete留下来的全是同一级的host节点
+}
+
 /**
  * 删除子节点
  * @param childToDelete 即将被删除的子节点
  */
 const commitDeletion = (childToDelete: FiberNode) => {
   // 递归删除
-  let hostChildrenToDelete: FiberNode | null = null;
+  const rootChildrenToDelete: FiberNode[] = [];
   // 递归子树
   commitNestedComponent(childToDelete, (unmountFiber) => {
     switch (unmountFiber.tag) {
       case HostComponent:
-        if (hostChildrenToDelete === null) {
-          hostChildrenToDelete = unmountFiber;
-        }
+        // if (rootChildrenToDelete === null) {
+        //   rootChildrenToDelete = unmountFiber;
+        // }
+        recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
         // TODO 需要解绑ref
         return;
       case HostText:
-        if (hostChildrenToDelete === null) {
-          hostChildrenToDelete = unmountFiber;
-        }
+        recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
         return;
       case FunctionComponent:
         // TODO 删除前要调用useEffect中的unmount方法
@@ -109,10 +129,13 @@ const commitDeletion = (childToDelete: FiberNode) => {
     }
   });
   //移除rootHostNode的DOM
-  if (hostChildrenToDelete !== null) {
+  if (rootChildrenToDelete.length !== 0) {
     const hostParent = getHostParent(childToDelete);
     if (hostParent !== null) {
-      removeChild((hostChildrenToDelete as FiberNode).stateNode, hostParent);
+      rootChildrenToDelete.forEach((childToDelete) => {
+        // 对于Fragment来说，有可能有多个根节点
+        removeChild(childToDelete.stateNode, hostParent);
+      });
     }
   }
   childToDelete.return = null;
