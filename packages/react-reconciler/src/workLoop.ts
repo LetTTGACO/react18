@@ -7,6 +7,7 @@ import { commitMutationEffects } from './commitWork';
 import {
   getHighestPriorityLane,
   Lane,
+  markRootFinished,
   mergeLanes,
   NoLane,
   SyncLane
@@ -15,10 +16,13 @@ import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue';
 import { scheduleMicroTask } from 'hostConfig';
 
 let workInProcess: FiberNode | null = null;
+let wipRootRenderLane: Lane = NoLane;
 
-function prepareFreshStack(root: FiberRootNode) {
+function prepareFreshStack(root: FiberRootNode, lane: Lane) {
   // root.current 指向hostRootFiber
   workInProcess = createWorkInProcess(root.current, {});
+  // 更新开始保存lane
+  wipRootRenderLane = lane;
 }
 
 /**
@@ -91,7 +95,8 @@ function markUpdateFromFiberToRoot(fiber: FiberNode) {
  * @param lane
  */
 export function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
-  const nextLane = getHighestPriorityLane(lane);
+  // TODO 没懂为什么还要再调用一次
+  const nextLane = getHighestPriorityLane(root.pendingLanes);
   if (nextLane !== SyncLane) {
     // 其他比SyncLane低的优先级
     // NoLane等
@@ -99,8 +104,11 @@ export function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
     ensureRootIsScheduled(root);
     return;
   }
+  if (__DEV__) {
+    console.warn('render阶段开始');
+  }
   // 初始化
-  prepareFreshStack(root);
+  prepareFreshStack(root, lane);
 
   do {
     try {
@@ -116,6 +124,8 @@ export function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
     }
   } while (true);
   root.finishedWork = root.current.alternate;
+  // 更新结束，保存lane到root上
+  root.finishedLane = wipRootRenderLane;
   // wip fiberNode树 树中的flags
   commitRoot(root);
 }
@@ -129,8 +139,17 @@ function commitRoot(root: FiberRootNode) {
   if (__DEV__) {
     console.warn('commit阶段开始', finishedWork);
   }
+  const lane = root.finishedLane;
+  if (lane === NoLane && __DEV__) {
+    console.warn('commit阶段finishedLane不应该是NoLane');
+  }
   // 重置
   root.finishedWork = null;
+
+  root.finishedLane = NoLane;
+  // 移除root.pendingLanes
+  // 移除本次更新被消费的Lane
+  markRootFinished(root, lane);
   // 判断是否存在3个子阶段需要执行的操作
   // root flags root subtreeFlags 是否包含副作用
   const subtreeHasEffect =
@@ -157,7 +176,7 @@ function workLoop() {
 
 function performUnitOfWork(fiber: FiberNode) {
   // 先执行递，有子节点就遍历子节点
-  const next = beginWork(fiber);
+  const next = beginWork(fiber, wipRootRenderLane);
   // 执行完之后将props固化
   fiber.memoizedProps = fiber.pendingProps;
   if (next === null) {

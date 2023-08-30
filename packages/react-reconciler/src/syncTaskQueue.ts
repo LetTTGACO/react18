@@ -1,4 +1,4 @@
-let syncQueue: ((...args: any) => void)[] | null;
+let syncQueue: ((...args: any) => void)[] | null = null;
 
 let isFlushingSyncQueue = false;
 
@@ -23,6 +23,7 @@ export function flushSyncCallbacks() {
     try {
       isFlushingSyncQueue = true;
       syncQueue.forEach((callback) => callback());
+      syncQueue = null;
     } catch (e) {
       if (__DEV__) {
         console.warn('flushSyncCallback错误', e);
