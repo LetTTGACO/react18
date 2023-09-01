@@ -46,8 +46,10 @@ export interface FCUpdateQueue<State> extends UpdateQueue<State> {
 export function renderWithHooks(wip: FiberNode, lane: Lane) {
   // 赋值操作
   currentlyRenderingFiber = wip;
-  // 重置操作
+  // 重置操作 hooks链表
   wip.memoizedState = null;
+  // 重置effect链表
+  wip.updateQueue = null;
   renderLane = lane;
 
   const current = wip.alternate;
@@ -62,8 +64,10 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
   const Component = wip.type;
   const props = wip.pendingProps;
   const children = Component(props);
-  // 重置操作
+  // 重置
   currentlyRenderingFiber = null;
+  workInProgressHook = null;
+  currentHook = null;
   return children;
 }
 
@@ -73,7 +77,8 @@ const HooksDispatcherOnMount: Dispatcher = {
 };
 
 const HooksDispatcherOnUpdate: Dispatcher = {
-  useState: updateState
+  useState: updateState,
+  useEffect: updateEffect
 };
 
 function mountEffect(create: EffectCallback | void, deps: EffectDeps | void) {
@@ -158,6 +163,50 @@ function updateState<State>(): [State, Dispatch<State>] {
   return [hook.memoizedState, queue.dispatch as Dispatch<State>];
 }
 
+function updateEffect(create: EffectCallback | void, deps: EffectDeps | void) {
+  // 找到当前useState对应的hook数据
+  const hook = updateWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  let destroy: EffectCallback | void;
+
+  if (currentHook !== null) {
+    const preEffect = currentHook.memoizedState as Effect;
+    destroy = preEffect.destroy;
+    if (nextDeps !== null) {
+      // 浅比较
+      const preDeps = preEffect.deps;
+      if (areHookInputEqual(nextDeps, preDeps)) {
+        // 依赖没有变
+        hook.memoizedState = pushEffect(Passive, create, destroy, nextDeps);
+        return;
+      }
+    }
+    // 浅比较不相等, fiber标记为PassiveEffect
+    (currentlyRenderingFiber as FiberNode).flags |= PassiveEffect;
+    hook.memoizedState = pushEffect(
+      Passive | HookHasEffect,
+      create,
+      destroy,
+      nextDeps
+    );
+  }
+}
+
+function areHookInputEqual(nextDeps: EffectDeps, preDeps: EffectDeps) {
+  if (nextDeps === null || preDeps === null) {
+    // 比较失败
+    return false;
+  }
+
+  for (let i = 0; i < nextDeps.length && i < preDeps.length; i++) {
+    if (Object.is(nextDeps[i], preDeps[i])) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 function updateWorkInProgressHook(): Hook {
   // TODO render阶段触发的更新
   let nextCurrentHook: Hook | null = null;
@@ -166,9 +215,9 @@ function updateWorkInProgressHook(): Hook {
     // 第二次就不会了，因为hooks是一个链表，next就是下一个hook
     // FC update时的第一个hook
     // 从currentlyRenderingFiber找到当前的的hook
-    const current = currentlyRenderingFiber?.alternate;
+    const current = (currentlyRenderingFiber as FiberNode).alternate;
     if (current !== null) {
-      nextCurrentHook = current?.memoizedState;
+      nextCurrentHook = current.memoizedState;
     } else {
       nextCurrentHook = null;
     }

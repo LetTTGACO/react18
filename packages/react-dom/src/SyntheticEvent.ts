@@ -77,10 +77,8 @@ function dispatchEvent(container: Container, eventType: string, e: Event) {
 }
 
 function triggerEventFlow(paths: EventCallback[], se: SyntheticEvent) {
-  console.log(paths);
   for (let i = 0; i < paths.length; i++) {
     const callback = paths[i];
-    console.log('se', se);
     callback.call(null, se);
     if (se.__stopPropagation) {
       break;
