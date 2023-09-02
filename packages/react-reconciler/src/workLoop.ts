@@ -25,7 +25,7 @@ import {
 import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue';
 import { scheduleMicroTask } from 'hostConfig';
 import {
-  unstable_NormalPriority as NormalPriorit,
+  unstable_NormalPriority as NormalPriority,
   unstable_scheduleCallback as scheduleCallback
 } from 'scheduler';
 import { HookHasEffect, Passive } from './hookEffectTags';
@@ -176,7 +176,7 @@ function commitRoot(root: FiberRootNode) {
     if (!rootDoseHasPassiveEffect) {
       rootDoseHasPassiveEffect = true;
       // 调度副作用
-      scheduleCallback(NormalPriorit, () => {
+      scheduleCallback(NormalPriority, () => {
         // 执行副作用
         flushPassiveEffects(root.pendingPassiveEffects);
         return;
@@ -187,6 +187,8 @@ function commitRoot(root: FiberRootNode) {
   // 判断是否存在3个子阶段需要执行的操作
   // root flags root subtreeFlags 是否包含副作用
   const subtreeHasEffect =
+    // TODO 之前只有MutationMask
+    // (finishedWork.subtreeFlags & (MutationMask | PassiveMask)) !== NoFlags;
     (finishedWork.subtreeFlags & (MutationMask | PassiveMask)) !== NoFlags;
   const rootHasEffect =
     (finishedWork.flags & (MutationMask | PassiveMask)) !== NoFlags;

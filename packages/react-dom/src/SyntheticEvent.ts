@@ -17,7 +17,7 @@ export interface DOMElement extends Element {
   [elementPropsKey]: Props;
 }
 
-export const updateFiberProps = (node: DOMElement, props: Props) => {
+export const updateFiberProps = (node: DOMElement, props: any) => {
   node[elementPropsKey] = props;
 };
 

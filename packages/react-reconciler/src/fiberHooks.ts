@@ -68,6 +68,7 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
   currentlyRenderingFiber = null;
   workInProgressHook = null;
   currentHook = null;
+  renderLane = NoLane;
   return children;
 }
 
@@ -115,7 +116,7 @@ function pushEffect(
     const newUpdateQueue = createFCUpdateQueue();
     // 与自己形成环状链表
     effect.next = effect;
-    newUpdateQueue.lastEffect = effect.next;
+    newUpdateQueue.lastEffect = effect;
     fiber.updateQueue = newUpdateQueue;
   } else {
     // 存在则push Effect

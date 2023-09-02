@@ -10,10 +10,10 @@ import {
   appendInitialChild,
   Container,
   createInstance,
-  createTextInstance
+  createTextInstance,
+  Instance
 } from 'hostConfig';
 import { NoFlags, Update } from './fiberFlags';
-import { updateFiberProps } from 'react-dom/src/SyntheticEvent';
 
 function markUpdate(fiber: FiberNode) {
   fiber.flags |= Update;
@@ -37,7 +37,9 @@ export const completeWork = (wip: FiberNode) => {
         // fiberNode.updateQueue = ['变化的属性'， 变化的值]
         // n key
         // n + 1 value
-        updateFiberProps(wip.stateNode, newProps);
+        // TODO 应该先判断是否变化再标记
+        // updateFiberProps(wip.stateNode, newProps);
+        markUpdate(wip);
       } else {
         // 1.构建DOM
         const instance = createInstance(wip.type, newProps);
@@ -77,7 +79,7 @@ export const completeWork = (wip: FiberNode) => {
   }
 };
 
-function appendAllChildren(parent: Container, wip: FiberNode) {
+function appendAllChildren(parent: Container | Instance, wip: FiberNode) {
   let node = wip.child;
   // wip有可能不是一个DOM节点
   // 所以需要对wip的子节点进行递归遍历
