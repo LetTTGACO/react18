@@ -71,7 +71,7 @@ export function lanesToSchedulerPriority(lanes: Lanes) {
  * Schedule优先级转成Lane优先级
  * @param schedulerPriority
  */
-function schedulerPriorityToLane(schedulerPriority: number): Lane {
+export function schedulerPriorityToLane(schedulerPriority: number): Lane {
   if (schedulerPriority === unstable_ImmediatePriority) {
     return SyncLane;
   }
