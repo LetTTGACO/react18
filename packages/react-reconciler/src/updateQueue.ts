@@ -1,6 +1,6 @@
 import { Dispatch } from 'react/src/currentDispatcher';
 import { Action } from 'shared/ReactTypes';
-import { Lane } from './fiberLanes';
+import { isSubsetOfLanes, Lane, NoLane } from './fiberLanes';
 
 export interface Update<State> {
   action: Action<State>;
@@ -73,34 +73,84 @@ export const enqueueUpdate = <State>(
  */
 export const processUpdateQueue = <State>(
   baseState: State,
+  // baseQueue和原来的pendingUpdate合并后的结果
   pendingUpdate: Update<State> | null,
   // 需要考虑优先级的因素
   renderLane: Lane
-): { memoizedState: State } => {
+): {
+  memoizedState: State;
+  baseQueue: Update<State> | null;
+  baseState: State;
+} => {
   const result: ReturnType<typeof processUpdateQueue<State>> = {
-    memoizedState: baseState
+    memoizedState: baseState,
+    baseState,
+    baseQueue: null
   };
   if (pendingUpdate !== null) {
+    // 第一个update
     const first = pendingUpdate.next as Update<State>;
     let pending = pendingUpdate.next as Update<State>;
+    let newBaseState = baseState;
+    let newBaseQueueFirst: Update<State> | null = null;
+    let newBaseQueueLast: Update<State> | null = null;
+
+    let newState = baseState;
     do {
       // 获取当前update自己的lane
       const updateLane = pending.lane;
-      if (updateLane === renderLane) {
+      // renderLane 本次更新的lane
+      // updateLane 是传进来的lane
+      if (!isSubsetOfLanes(renderLane, updateLane)) {
+        // 优先级不够 被跳过
+        // console.error('不应该进入updateLane !== renderLane这里');
+        const clone = createUpdate(pending.action, pending.lane);
+        // 是不是第一个被跳过的update
+        if (newBaseQueueFirst === null) {
+          // 是第一个被跳过的，将update保存下来为环形链表
+          newBaseQueueFirst = clone;
+          newBaseQueueLast = clone;
+          // 最后一个没被跳过的update计算后的结果
+          newBaseState = newState;
+        } else {
+          // 将update保存下来为环形链表
+          (newBaseQueueLast as Update<State>).next = clone;
+          newBaseQueueLast = clone;
+        }
+      } else {
+        // 优先级足够
+        // 判断之前有没有被跳过的update
+        // 因为本次更新「被跳过的update及其后面的所有update」都会被保存在baseQueue中参与下次计算
+        if (newBaseQueueLast !== null) {
+          const clone = createUpdate(pending.action, NoLane);
+          // 将update保存下来为环形链表
+          (newBaseQueueLast as Update<State>).next = clone;
+          newBaseQueueLast = clone;
+        }
+        // 没有被跳过，正常参与计算
         const action = pending.action;
         // 可以是函数
         if (action instanceof Function) {
-          baseState = action(baseState);
+          newState = action(baseState);
         } else {
           // 也可以是值
-          baseState = action;
+          newState = action;
         }
-      } else {
-        console.error('不应该进入updateLane !== renderLane这里');
       }
       pending = pending.next as Update<State>;
     } while (first !== pending);
+    if (newBaseQueueLast === null) {
+      // 本次计算没有update 被跳过
+      // 如果本次更新没有update被跳过，则下次更新开始时baseState === memoizedState
+      newBaseState = newState;
+    } else {
+      // 形成环状链表
+      newBaseQueueLast.next = newBaseQueueFirst;
+    }
+    result.memoizedState = newState;
+    result.baseState = newBaseState;
+    result.baseQueue = newBaseQueueLast;
   }
-  result.memoizedState = baseState;
+
   return result;
 };

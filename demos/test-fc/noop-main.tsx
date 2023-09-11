@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-noop-renderer';
-import { windows } from 'rimraf';
 
 function App() {
   return (

@@ -83,3 +83,14 @@ export function schedulerPriorityToLane(schedulerPriority: number): Lane {
   }
   return NoLane;
 }
+
+/**
+ * 比较一个Lane的优先级是否足够，是否在一个Lanes中
+ * 这样做的好处是 一般情况下基本相当于判断set和subset全等
+ * 但是如果subset为NoLane时，set & NoLane 一定会是NoLane
+ * @param set 本次流程的lane
+ * @param subset 传进来的lane
+ */
+export function isSubsetOfLanes(set: Lanes, subset: Lane) {
+  return (set & subset) === subset;
+}

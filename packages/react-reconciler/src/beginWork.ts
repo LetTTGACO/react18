@@ -60,6 +60,7 @@ function updateHostRoot(wip: FiberNode, renderLane: Lane) {
   const baseState = wip.memoizedState;
   const updateQueue = wip.updateQueue as UpdateQueue<Element>;
   const pending = updateQueue.shared.pending;
+  // 考虑并发更新时，这里如果赋值为null，之前的计算结果就丢失了
   updateQueue.shared.pending = null;
   const { memoizedState } = processUpdateQueue(baseState, pending, renderLane);
   // 最新状态, 对应的就是<App/>的reactElement

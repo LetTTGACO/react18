@@ -5,6 +5,7 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "lib": ["ESNext", "DOM"],
+    "jsx": "react",
     "moduleResolution": "Node",
     "strict": false,
     "sourceMap": true,
@@ -15,6 +16,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": false,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
