@@ -1,3 +1,4 @@
+import ReactCurrentBatchConfig from 'react/src/currentBatchConfig';
 import { FiberRootNode } from './fiber';
 import {
   unstable_getCurrentPriorityLevel,
@@ -16,6 +17,7 @@ export const SyncLane = /*             */ 0b0000000000000000000000000000001; // 
 
 export const InputContinuousLane = /*  */ 0b0000000000000000000000000000010; // 连续触发，ex：onScroll
 export const DefaultLane = /*          */ 0b0000000000000000000000000000100; // 默认，ex：useEffect回调
+export const TransitionLane = /*          */ 0b0000000000000000000000000001000; // useTransition
 export const IdleLane = /*             */ 0b1000000000000000000000000000000; // 空闲
 
 export function mergeLanes(laneA: Lane, laneB: Lane): Lanes {
@@ -23,6 +25,11 @@ export function mergeLanes(laneA: Lane, laneB: Lane): Lanes {
 }
 
 export function requestUpdateLanes() {
+  // 判断transition，如果是transition，则返回TransitionLane
+  const isTransition = ReactCurrentBatchConfig.transition !== null;
+  if (isTransition) {
+    return TransitionLane;
+  }
   // 从上下文环境中获取Schedule优先级
   const currentPriority = unstable_getCurrentPriorityLevel();
   // 转成React Lane
