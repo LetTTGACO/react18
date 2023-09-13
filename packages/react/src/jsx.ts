@@ -39,7 +39,7 @@ export const jsx = (
 ) => {
   let key: Key = null;
   const props: Props = {};
-  let ref: Ref = null;
+  let ref: any = null;
 
   for (const prop in config) {
     const val = config[prop];
@@ -74,7 +74,7 @@ export const jsx = (
 export const jsxDEV = (type: ElementType, config: any) => {
   let key: Key = null;
   const props: Props = {};
-  let ref: Ref = null;
+  let ref: any = null;
 
   for (const prop in config) {
     const val = config[prop];

@@ -24,7 +24,7 @@ export type ReactContext<T> = {
 
 export type ReactProviderType<T> = {
   $$typeof: symbol | number;
-  _context: ReactContext<T> | null;
+  _context: ReactContext<T>;
 };
 
 export type Action<State> = State | ((prevState: State) => State);

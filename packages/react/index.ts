@@ -25,6 +25,11 @@ export const useRef: Dispatcher['useRef'] = (initialValue) => {
   return dispatcher.useRef(initialValue);
 };
 
+export const useContext: Dispatcher['useContext'] = (context) => {
+  const dispatcher = resolveDispatcher();
+  return dispatcher.useContext(context);
+};
+
 /**
  * 内部数据共享层
  */
@@ -36,3 +41,4 @@ export const version = '0.0.0';
 // TODO 根据环境区分使用jsx 还是jsxDev
 export const createElement = jsx;
 export const isValidElement = isValidElementFn;
+export { createContext } from './src/context';

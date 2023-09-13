@@ -1,5 +1,6 @@
 import { FiberNode } from './fiber';
 import {
+  ContextProvider,
   Fragment,
   FunctionComponent,
   HostComponent,
@@ -14,6 +15,8 @@ import {
   Instance
 } from 'hostConfig';
 import { NoFlags, Ref, Update } from './fiberFlags';
+import { popProvider } from './fiberContext';
+import { ReactContext } from 'shared/ReactTypes';
 
 function markUpdate(fiber: FiberNode) {
   fiber.flags |= Update;
@@ -79,6 +82,11 @@ export const completeWork = (wip: FiberNode) => {
     case FunctionComponent:
     case HostRoot:
     case Fragment:
+      bubbleProperties(wip);
+      return null;
+    case ContextProvider:
+      const context = wip.type._context as ReactContext<any>;
+      popProvider(context);
       bubbleProperties(wip);
       return null;
     default:

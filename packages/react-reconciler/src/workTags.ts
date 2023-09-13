@@ -3,7 +3,8 @@ export type WorkTag =
   | typeof HostRoot
   | typeof HostComponent
   | typeof HostText
-  | typeof Fragment;
+  | typeof Fragment
+  | typeof ContextProvider;
 
 /**
  * 函数式组件
@@ -29,3 +30,8 @@ export const HostText = 6;
  * <></>Fragment对应的Tag
  */
 export const Fragment = 7;
+
+/**
+ * ContextProvider对应的Tag
+ */
+export const ContextProvider = 8;

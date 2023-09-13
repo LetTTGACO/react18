@@ -126,6 +126,19 @@ function ChildReconciler(shouldTrackEffects: boolean) {
     return fiber;
   }
 
+  function getElementKeyToUse(element: any, index?: number) {
+    if (
+      Array.isArray(element) ||
+      typeof element === 'string' ||
+      typeof element === 'number' ||
+      element === 'null' ||
+      element === undefined
+    ) {
+      return index;
+    }
+    return element.key !== null ? element.key : element.index;
+  }
+
   /**
    * 处理同级多节点的新的child
    */
@@ -145,7 +158,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
     const existingChildren: ExistingChildren = new Map();
     let current = currentFirstChild;
     while (current !== null) {
-      const keyToUse = current.key !== null ? current.key : current.index;
+      const keyToUse = getElementKeyToUse(current);
       existingChildren.set(keyToUse, current);
       current = current.sibling;
     }
@@ -212,7 +225,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
     index: number,
     element: any
   ): FiberNode | null {
-    const keyToUse = element.key !== null ? element.key : index;
+    const keyToUse = getElementKeyToUse(element, index);
     const before = existingChildren.get(keyToUse);
     // element是HostText，对比current的type，一样的话可复用
     if (typeof element === 'string' || typeof element === 'number') {

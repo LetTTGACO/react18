@@ -8,7 +8,7 @@ import {
   Update,
   UpdateQueue
 } from './updateQueue';
-import { Action } from 'shared/ReactTypes';
+import { Action, ReactContext } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 import { Dispatch, Dispatcher } from 'react/src/currentDispatcher';
 import currentBatchConfig from 'react/src/currentBatchConfig';
@@ -80,15 +80,27 @@ const HooksDispatcherOnMount: Dispatcher = {
   useState: mountState,
   useEffect: mountEffect,
   useTransition: mountTransition,
-  useRef: mountRef
+  useRef: mountRef,
+  useContext: readContext
 };
 
 const HooksDispatcherOnUpdate: Dispatcher = {
   useState: updateState,
   useEffect: updateEffect,
   useTransition: updateTransition,
-  useRef: updateRef
+  useRef: updateRef,
+  useContext: readContext
 };
+
+function readContext<T>(context: ReactContext<T>): T {
+  // 消费者
+  const consumer = currentlyRenderingFiber;
+  if (consumer === null) {
+    // useContext脱离了函数组件来使用
+    throw new Error('useContext只能在函数组件中使用');
+  }
+  return context._currentValue;
+}
 
 function mountRef<T>(initialValue: T): { current: T } {
   const hook = mountWorkInProgressHook();
