@@ -20,6 +20,11 @@ export const useTransition: Dispatcher['useTransition'] = () => {
   return dispatcher.useTransition();
 };
 
+export const useRef: Dispatcher['useRef'] = (initialValue) => {
+  const dispatcher = resolveDispatcher();
+  return dispatcher.useRef(initialValue);
+};
+
 /**
  * 内部数据共享层
  */

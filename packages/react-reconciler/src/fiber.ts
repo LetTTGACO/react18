@@ -22,7 +22,7 @@ export class FiberNode {
   type: any;
   // 例如HostComponent的<div> 则为div DOM
   stateNode: any;
-  ref: Ref;
+  ref: Ref | null;
 
   // 指向父FiberNode
   return: FiberNode | null;
@@ -38,6 +38,7 @@ export class FiberNode {
   memoizedState: any;
   // 用于切换current fiberNode 和workInProcess fiberNode
   alternate: FiberNode | null;
+  lanes: Lanes;
   flags: Flags;
   subtreeFlags: Flags;
   updateQueue: unknown;
@@ -74,6 +75,8 @@ export class FiberNode {
     this.memoizedState = null;
 
     this.alternate = null;
+    // 调度
+    this.lanes = NoLane;
     // 副作用
     this.flags = NoFlags;
     this.subtreeFlags = NoFlags;
@@ -149,6 +152,7 @@ export const createWorkInProcess = (
   wip.child = current.child;
   wip.memoizedProps = current.memoizedProps;
   wip.memoizedState = current.memoizedState;
+  wip.ref = current.ref;
   return wip;
 };
 
@@ -157,7 +161,7 @@ export const createWorkInProcess = (
  * @param element
  */
 export function createFiberFromElement(element: ReactElementType): FiberNode {
-  const { type, key, props } = element;
+  const { type, key, props, ref } = element;
   let fiberTag: WorkTag = FunctionComponent;
   if (typeof type === 'string') {
     // <div/> type: "div"
@@ -168,6 +172,7 @@ export function createFiberFromElement(element: ReactElementType): FiberNode {
 
   const fiber = new FiberNode(fiberTag, props, key);
   fiber.type = type;
+  fiber.ref = ref;
   return fiber;
 }
 

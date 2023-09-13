@@ -10,6 +10,7 @@ import { processUpdateQueue, UpdateQueue } from './updateQueue';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
 import { Lane } from './fiberLanes';
+import { Ref } from './fiberFlags';
 
 /**
  * 递归中过的递阶段，向下
@@ -77,6 +78,7 @@ function updateHostComponent(wip: FiberNode) {
   // 创建子fiberNode
   const nextProps = wip.pendingProps;
   const nextChildren = nextProps.children;
+  markRef(wip.alternate, wip);
   reconcileChildren(wip, nextChildren);
   return wip.child;
 }
@@ -91,5 +93,24 @@ function reconcileChildren(wip: FiberNode, children?: any) {
   } else {
     // mount阶段，currentChildren为null
     wip.child = mountChildFibers(wip, null, children);
+  }
+}
+
+/**
+ * beginWork阶段标记Ref
+ * @param current
+ * @param wip
+ */
+function markRef(current: FiberNode | null, wip: FiberNode) {
+  // mount时：存在Ref
+  // update时：ref变化
+  // 以上情况就需要标记Ref
+  if (
+    // mount时：存在Ref
+    (current === null && wip.ref !== null) ||
+    // update时：ref变化
+    (current !== null && current.ref !== wip.ref)
+  ) {
+    wip.flags |= Ref;
   }
 }

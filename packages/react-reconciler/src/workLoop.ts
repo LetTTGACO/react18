@@ -12,7 +12,8 @@ import {
   commitHookEffectListMount,
   commitHookEffectListUnmount,
   commitHookEffectListDestroy,
-  commitMutationEffects
+  commitMutationEffects,
+  commitLayoutEffects
 } from './commitWork';
 import {
   getHighestPriorityLane,
@@ -324,12 +325,16 @@ function commitRoot(root: FiberRootNode) {
     (finishedWork.flags & (MutationMask | PassiveMask)) !== NoFlags;
 
   if (subtreeHasEffect || rootHasEffect) {
-    // beforeMutation阶段
-    // mutation阶段 Placement对应的数组环境的操作
+    // 阶段1/3:beforeMutation
+
+    // 阶段2/3:Mutation Placement对应的数组环境的操作
     commitMutationEffects(finishedWork, root);
+    // Fiber Tree切换
     // fiber树的切换 发生在mutation on阶段和layout阶段之间
     root.current = finishedWork;
-    // layout阶段
+
+    // 阶段3/3:Layout
+    commitLayoutEffects(finishedWork, root);
   } else {
     root.current = finishedWork;
   }
