@@ -5,7 +5,9 @@ import {
   FunctionComponent,
   HostComponent,
   HostRoot,
-  HostText
+  HostText,
+  OffscreenComponent,
+  SuspenseComponent
 } from './workTags';
 import {
   appendInitialChild,
@@ -14,7 +16,7 @@ import {
   createTextInstance,
   Instance
 } from 'hostConfig';
-import { NoFlags, Ref, Update } from './fiberFlags';
+import { NoFlags, Ref, Update, Visibility } from './fiberFlags';
 import { popProvider } from './fiberContext';
 import { ReactContext } from 'shared/ReactTypes';
 
@@ -82,11 +84,33 @@ export const completeWork = (wip: FiberNode) => {
     case FunctionComponent:
     case HostRoot:
     case Fragment:
+    case OffscreenComponent:
       bubbleProperties(wip);
       return null;
     case ContextProvider:
       const context = wip.type._context as ReactContext<any>;
       popProvider(context);
+      bubbleProperties(wip);
+      return null;
+    case SuspenseComponent:
+      // 对比mode变化
+      const offscreenFiber = wip.child as FiberNode;
+      const isHidden = offscreenFiber.pendingProps.mode === 'hidden';
+      const currentOffscreenFiber = offscreenFiber.alternate;
+      if (currentOffscreenFiber !== null) {
+        // update
+        // completeWork时对比current Offscreen mode 与 wip Offscreen mode
+        const wasHidden = currentOffscreenFiber.pendingProps.mode === 'hidden';
+        if (wasHidden !== isHidden) {
+          offscreenFiber.flags |= Visibility;
+          // 这里冒泡的是wip的子组件，也就是是offscreenFiber
+          bubbleProperties(offscreenFiber);
+        }
+      } else if (isHidden) {
+        // current === null && hidden，首屏渲染时为hidden
+        offscreenFiber.flags |= Visibility;
+        bubbleProperties(offscreenFiber);
+      }
       bubbleProperties(wip);
       return null;
     default:

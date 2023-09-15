@@ -9,21 +9,27 @@ import {
   PassiveMask,
   Placement,
   Ref,
-  Update
+  Update,
+  Visibility
 } from './fiberFlags';
 import {
   FunctionComponent,
   HostComponent,
   HostRoot,
-  HostText
+  HostText,
+  OffscreenComponent
 } from './workTags';
 import {
   appendChildToContainer,
   commitUpdate,
   Container,
+  hideInstance,
+  hideTextInstance,
   insertChildToContainer,
   Instance,
-  removeChild
+  removeChild,
+  unHideInstance,
+  unHideTextInstance
 } from 'hostConfig';
 import { Effect, FCUpdateQueue } from './fiberHooks';
 import { HookHasEffect } from './hookEffectTags';
@@ -110,7 +116,94 @@ const commitMutationEffectsOnFiber = (
     // TODO 是否要去掉flag
     // finishedWork.flags &= ~Ref;
   }
+  // 在mutation子阶段处理Visibility effectTag
+  if ((flags & Visibility) !== NoFlags && tag === OffscreenComponent) {
+    const isHidden = finishedWork.pendingProps.mode === 'hidden';
+    // 处理Visibility effectTag时需要找到所有子树顶层Host节点，并标记为display=none
+    hideOrUnHideAllChildren(finishedWork, isHidden);
+    finishedWork.flags &= ~Visibility;
+  }
 };
+
+/**
+ * 隐藏或显示所有顶层子Host组件
+ * @param finishedWork
+ * @param isHidden
+ */
+function hideOrUnHideAllChildren(finishedWork: FiberNode, isHidden: boolean) {
+  findHostSubTreeRoot(finishedWork, (hostRoot) => {
+    const instance = hostRoot.stateNode;
+    if (hostRoot.tag === HostComponent) {
+      isHidden ? hideInstance(instance) : unHideInstance(instance);
+    } else if (hostRoot.tag === HostText) {
+      isHidden
+        ? hideTextInstance(instance)
+        : unHideTextInstance(instance, hostRoot.memoizedProps?.content);
+    }
+  });
+}
+
+/**
+ * 找到所有子树顶层Host节点
+ * @param finishedWork
+ * @param callback
+ */
+
+function findHostSubTreeRoot(
+  finishedWork: FiberNode,
+  callback: (hostSubtreeRoot: FiberNode) => void
+) {
+  let node = finishedWork.child as FiberNode;
+  let hostSubtreeRoot = null;
+  while (true) {
+    if (node.tag === HostComponent) {
+      if (hostSubtreeRoot === null) {
+        hostSubtreeRoot = node;
+        callback(node);
+      }
+    } else if (node.tag === HostText) {
+      if (hostSubtreeRoot === null) {
+        callback(node);
+      }
+    } else if (
+      node.tag === OffscreenComponent &&
+      node.pendingProps.mode === 'hidden' &&
+      node !== finishedWork
+    ) {
+      // 什么都不做
+      // Suspense嵌套了
+      // 不需要处理
+    } else if (node.child !== null) {
+      node.child.return = node;
+      node = node.child;
+      // 继续向下遍历
+      continue;
+    }
+    if (node === finishedWork) {
+      return;
+    }
+
+    while (node.sibling === null) {
+      // 往上找
+      if (node.return === null || node.return === finishedWork) {
+        return;
+      }
+
+      if (hostSubtreeRoot === node) {
+        // 已经离开了顶层节点
+        hostSubtreeRoot = null;
+      }
+      node = node.return;
+    }
+    if (hostSubtreeRoot === node) {
+      // 已经离开了顶层节点
+      hostSubtreeRoot = null;
+    }
+    // 兄弟节点
+    node.sibling.return = node.return;
+    node = node.sibling;
+  }
+}
 
 /**
  * mutation子阶段解绑之前的Ref

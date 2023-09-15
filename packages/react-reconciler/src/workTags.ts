@@ -4,7 +4,9 @@ export type WorkTag =
   | typeof HostComponent
   | typeof HostText
   | typeof Fragment
-  | typeof ContextProvider;
+  | typeof ContextProvider
+  | typeof SuspenseComponent
+  | typeof OffscreenComponent;
 
 /**
  * 函数式组件
@@ -35,3 +37,8 @@ export const Fragment = 7;
  * ContextProvider对应的Tag
  */
 export const ContextProvider = 8;
+/**
+ * Suspense相关组件对应的Tag
+ */
+export const SuspenseComponent = 13;
+export const OffscreenComponent = 14;

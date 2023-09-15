@@ -42,3 +42,8 @@ export const version = '0.0.0';
 export const createElement = jsx;
 export const isValidElement = isValidElementFn;
 export { createContext } from './src/context';
+
+export {
+  REACT_FRAGMENT_TYPE as Fragment,
+  REACT_SUSPENSE_TYPE as Suspense
+} from 'shared/ReactSymbols';
