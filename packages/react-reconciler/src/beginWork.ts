@@ -19,9 +19,16 @@ import { processUpdateQueue, UpdateQueue } from './updateQueue';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
 import { renderWithHooks } from './fiberHooks';
 import { Lane } from './fiberLanes';
-import { ChildDeletion, Placement, Ref } from './fiberFlags';
+import {
+  ChildDeletion,
+  DidCapture,
+  NoFlags,
+  Placement,
+  Ref
+} from './fiberFlags';
 import { ReactProviderType } from 'shared/ReactTypes';
 import { pushProvider } from './fiberContext';
+import { pushSuspenseHandler } from './suspenseContext';
 
 /**
  * 递归中过的递阶段，向下
@@ -62,16 +69,18 @@ function updateSuspenseComponent(wip: FiberNode) {
   const nextProps = wip.pendingProps;
   let showFallback = false;
   // 决定什么是否挂起，什么时候正常
-  const didSuspend = true;
+  const didSuspend = (wip.flags | DidCapture) !== NoFlags;
 
   if (didSuspend) {
     // 挂起状态
     showFallback = true;
+    wip.flags &= ~DidCapture;
   }
   // 子组件就是正常组件
   const nextPrimaryChildren = nextProps.children;
   // props上的fallback就是中间状态组件
   const nextFallbackChildren = nextProps.fallback;
+  pushSuspenseHandler(wip);
 
   if (current === null) {
     // mount流程

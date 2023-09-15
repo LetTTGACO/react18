@@ -8,13 +8,15 @@ import {
   Update,
   UpdateQueue
 } from './updateQueue';
-import { Action, ReactContext } from 'shared/ReactTypes';
+import { Action, ReactContext, Thenable, Usable } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
 import { Dispatch, Dispatcher } from 'react/src/currentDispatcher';
 import currentBatchConfig from 'react/src/currentBatchConfig';
 import { Lane, NoLane, requestUpdateLanes } from './fiberLanes';
 import { Flags, PassiveEffect } from './fiberFlags';
 import { HookHasEffect, Passive } from './hookEffectTags';
+import { REACT_CONTEXT_TYPE } from 'shared/ReactSymbols';
+import { trackUsedThenable } from './thenable';
 
 let currentlyRenderingFiber: FiberNode | null = null;
 let workInProgressHook: Hook | null = null;
@@ -81,7 +83,8 @@ const HooksDispatcherOnMount: Dispatcher = {
   useEffect: mountEffect,
   useTransition: mountTransition,
   useRef: mountRef,
-  useContext: readContext
+  useContext: readContext,
+  use
 };
 
 const HooksDispatcherOnUpdate: Dispatcher = {
@@ -89,7 +92,8 @@ const HooksDispatcherOnUpdate: Dispatcher = {
   useEffect: updateEffect,
   useTransition: updateTransition,
   useRef: updateRef,
-  useContext: readContext
+  useContext: readContext,
+  use
 };
 
 function readContext<T>(context: ReactContext<T>): T {
@@ -412,4 +416,30 @@ function mountWorkInProgressHook() {
     workInProgressHook = hook;
   }
   return workInProgressHook;
+}
+
+function use<T>(usable: Usable<T>): T {
+  if (usable !== null && typeof usable === 'object') {
+    if (typeof (usable as Thenable<T>).then === 'function') {
+      // thenable
+      const thenable = usable as Thenable<T>;
+      return trackUsedThenable(thenable);
+    } else if ((usable as ReactContext<T>).$$typeof === REACT_CONTEXT_TYPE) {
+      // context
+      const context = usable as ReactContext<T>;
+      return readContext(context);
+    }
+  }
+  throw new Error('不支持的use参数: ' + usable);
+}
+
+/**
+ * 重置
+ * 因为要开启unwind流程，
+ * 防止hook的数据和状态不对，报本次更新的hook比上次多之类的错误
+ */
+export function resetHooksOnUnwind() {
+  currentlyRenderingFiber = null;
+  currentHook = null;
+  workInProgressHook = null;
 }

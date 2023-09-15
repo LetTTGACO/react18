@@ -28,3 +28,50 @@ export type ReactProviderType<T> = {
 };
 
 export type Action<State> = State | ((prevState: State) => State);
+
+export type Usable<T> = Thenable<T> | ReactContext<T>;
+
+export interface Wakeable<Result> {
+  then(
+    onFulfilled: () => Result,
+    onRejected: () => Result
+  ): void | Wakeable<Result>;
+}
+
+export interface ThenableImpl<T, Result, Err> {
+  then(
+    onFulfilled: (value: T) => Result,
+    onRejected: (error: Err) => Result
+  ): void | Wakeable<Result>;
+}
+
+export interface UntrackedThenable<T, Result, Err>
+  extends ThenableImpl<T, Result, Err> {
+  status?: void;
+}
+
+export interface PendingThenable<T, Result, Err>
+  extends ThenableImpl<T, Result, Err> {
+  status: 'pending';
+}
+
+export interface FulfilledThenable<T, Result, Err>
+  extends ThenableImpl<T, Result, Err> {
+  status: 'fulfilled';
+  value: T;
+}
+
+export interface RejectedThenable<T, Result, Err>
+  extends ThenableImpl<T, Result, Err> {
+  status: 'rejected';
+  reason: Err;
+}
+// 未被跟踪状态
+// pending状态
+// fulfilled状态 -> resolved状态
+// rejected状态 -> reject状态
+export type Thenable<T, Result = void, Err = any> =
+  | UntrackedThenable<T, Result, Err>
+  | PendingThenable<T, Result, Err>
+  | FulfilledThenable<T, Result, Err>
+  | RejectedThenable<T, Result, Err>;

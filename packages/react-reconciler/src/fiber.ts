@@ -7,7 +7,7 @@ import {
   SuspenseComponent,
   WorkTag
 } from './workTags';
-import { Key, Props, ReactElementType, Ref } from 'shared/ReactTypes';
+import { Key, Props, ReactElementType, Ref, Wakeable } from 'shared/ReactTypes';
 import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
@@ -119,6 +119,9 @@ export class FiberRootNode {
   callbackNode: CallbackNode | null;
   callbackPriority: Lane;
 
+  // WeakMap{promise: Set<Lane>}
+  pingCache: WeakMap<Wakeable<any>, Set<Lane>> | null;
+
   constructor(container: Container, hostRootFiber: FiberNode) {
     this.container = container;
     this.current = hostRootFiber;
@@ -132,6 +135,7 @@ export class FiberRootNode {
       update: [],
       unmount: []
     };
+    this.pingCache = null;
   }
 }
 
