@@ -53,6 +53,8 @@ export function getHighestPriorityLane(lanes: Lanes): Lane {
  */
 export function markRootFinished(root: FiberRootNode, lane: Lane) {
   root.pendingLanes &= ~lane;
+  root.suspendedLanes = NoLanes;
+  root.pingLanes = NoLanes;
 }
 
 /**
@@ -100,4 +102,47 @@ export function schedulerPriorityToLane(schedulerPriority: number): Lane {
  */
 export function isSubsetOfLanes(set: Lanes, subset: Lane) {
   return (set & subset) === subset;
+}
+
+/**
+ * 标记挂起
+ * @param root
+ * @param suspendedLane
+ */
+export function markRootSuspended(root: FiberRootNode, suspendedLane: Lane) {
+  root.suspendedLanes |= suspendedLane;
+  root.pendingLanes &= ~suspendedLane;
+}
+
+/**
+ * 标记被ping了
+ * @param root
+ * @param pingLane
+ */
+export function markRootPinged(root: FiberRootNode, pingLane: Lane) {
+  root.pingLanes |= root.suspendedLanes & pingLane;
+  // root.pendingLanes &= root.pingLanes;
+}
+
+export function getNextLane(root: FiberRootNode) {
+  const pendingLanes = root.pendingLanes;
+  if (pendingLanes !== NoLanes) {
+    return NoLanes;
+  }
+  let nextLane = NoLane;
+  // 找到pendingLanes中没有被挂起的Lane
+  const suspendedLanes = pendingLanes & ~root.suspendedLanes;
+
+  if (suspendedLanes !== NoLanes) {
+    // 没有被挂起的Lane中优先级最高的
+    nextLane = getHighestPriorityLane(suspendedLanes);
+  } else {
+    // 找到被挂起的Lane中被ping的Lane
+    const pingLanes = pendingLanes & root.pingLanes;
+    if (pingLanes !== NoLanes) {
+      // 被挂起的Lane中被ping的Lane中优先级最高的
+      nextLane = getHighestPriorityLane(pingLanes);
+    }
+  }
+  return nextLane;
 }

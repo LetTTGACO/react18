@@ -276,6 +276,11 @@ function updateHostRoot(wip: FiberNode, renderLane: Lane) {
   // 考虑并发更新时，这里如果赋值为null，之前的计算结果就丢失了
   updateQueue.shared.pending = null;
   const { memoizedState } = processUpdateQueue(baseState, pending, renderLane);
+  const current = wip.alternate;
+  if (current !== null) {
+    current.memoizedState = memoizedState;
+    // markRef(current, wip);
+  }
   // 最新状态, 对应的就是<App/>的reactElement
   wip.memoizedState = memoizedState;
 
